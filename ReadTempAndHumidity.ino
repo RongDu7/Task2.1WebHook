@@ -29,54 +29,52 @@ char pass[] = "zGd7699!";
 
 
 unsigned long myChannelNumber = 2516564;
-const char * myWriteAPIKey = "Q5U4CIGTS6D1M6L8";
+const char * myWriteAPIKey = "KYEPHOK2MB61WBH6";
 
 void setup() {
-    // Initialize serial communication to allow debugging and data readout.
-    // Using a baud rate of 9600 bps.
     Serial.begin(9600);
     WiFi.begin(ssid, pass);
-    ThingSpeak.begin(client);  // Initialize ThingSpeak
+    ThingSpeak.begin(client); 
 
-    while (WiFi.status() != WL_CONNECTED) {  // Wait for the connection to the network
+    while (WiFi.status() != WL_CONNECTED) { 
     delay(500);
     Serial.print(".");
   }
   Serial.println("\nWiFi connected.");
     
-    // Uncomment the line below to set a custom delay between sensor readings (in milliseconds).
-    // dht11.setDelay(500); // Set this to the desired delay. Default is 500ms.
 }
 
 void loop() {
 
   int temperature = 0;
   int humidity = 0;
-
-  // Attempt to read the temperature and humidity values from the DHT11 sensor.
   int result = dht11.readTemperatureHumidity(temperature, humidity);
 
-  // Check the results of the readings.
-  // If the reading is successful, print the temperature and humidity values.
-  // If there are errors, print the appropriate error messages.
   if (result == 0) {
     Serial.print("Temperature: ");
     Serial.print(temperature);
     Serial.print(" °C\tHumidity: ");
     Serial.print(humidity);
     Serial.println(" %");
-    } else {
-      // Print error message based on the error code.
-      Serial.println(DHT11::getErrorString(result));
+
+
+    ThingSpeak.setField(1, temperature);
+    ThingSpeak.setField(2, humidity);
+
+    int alarmStatus = (temperature < 24 || temperature > 27) ? 2 : 1;
+    ThingSpeak.setField(3, alarmStatus);
+
+
+    ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
+    if (alarmStatus == 2) {
+      Serial.println("Alarm triggered!");
     }
+  } else {
+    Serial.println(DHT11::getErrorString(result));
+  }
 
-    // Set the fields with the values
-  ThingSpeak.setField(1, temperature);
-  ThingSpeak.setField(2, humidity);
-
-  // Write to the ThingSpeak channel
-  ThingSpeak.writeFields(myChannelNumber, myWriteAPIKey);
-
-  // ThingSpeak updates rate is at least 15 seconds for a free account.
-  delay(2000);
+    
+  delay(1500);
 }
+
+
